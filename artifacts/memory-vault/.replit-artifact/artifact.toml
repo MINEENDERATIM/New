@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Memory Vault"
+version = "1.0.0"
+id = "artifacts/memory-vault"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18928
+
+[services.development]
+run = "pnpm --filter @workspace/memory-vault run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/memory-vault", "run", "build" ]
+publicDir = "artifacts/memory-vault/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18928"
+BASE_PATH = "/"
