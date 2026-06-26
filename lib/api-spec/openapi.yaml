@@ -1,0 +1,433 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Memory Vault API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: memories
+    description: Memory operations
+  - name: tags
+    description: Tag operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /memories:
+    get:
+      operationId: listMemories
+      tags: [memories]
+      summary: List memories with optional filtering and search
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: month
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: day
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: favorites
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of memories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Memory"
+
+    post:
+      operationId: uploadMemory
+      tags: [memories]
+      summary: Upload a new memory with metadata
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/MemoryUpload"
+      responses:
+        "201":
+          description: Memory created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+
+  /memories/timeline:
+    get:
+      operationId: getTimeline
+      tags: [memories]
+      summary: Get memories grouped by year, month, day
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: month
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineYear"
+
+  /memories/stats:
+    get:
+      operationId: getStats
+      tags: [memories]
+      summary: Get memory statistics (counts by year/month, total count, favorites count)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryStats"
+
+  /memories/{id}:
+    get:
+      operationId: getMemory
+      tags: [memories]
+      summary: Get a single memory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Memory details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateMemory
+      tags: [memories]
+      summary: Update memory metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryUpdate"
+      responses:
+        "200":
+          description: Updated memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+        "404":
+          description: Not found
+
+    delete:
+      operationId: deleteMemory
+      tags: [memories]
+      summary: Delete a memory and its file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+        "404":
+          description: Not found
+
+  /memories/{id}/favorite:
+    patch:
+      operationId: toggleFavorite
+      tags: [memories]
+      summary: Toggle favorite status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+        "404":
+          description: Not found
+
+  /tags:
+    get:
+      operationId: listTags
+      tags: [tags]
+      summary: List all tags with usage count
+      responses:
+        "200":
+          description: Tags list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Memory:
+      type: object
+      required:
+        - id
+        - title
+        - date
+        - filename
+        - originalFilename
+        - isFavorite
+        - fileUrl
+        - fileType
+        - fileSize
+        - createdAt
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        date:
+          type: string
+          description: Memory date in YYYY-MM-DD format
+        location:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        filename:
+          type: string
+        originalFilename:
+          type: string
+        isFavorite:
+          type: boolean
+        fileUrl:
+          type: string
+        fileType:
+          type: string
+        fileSize:
+          type: integer
+        width:
+          type: ["integer", "null"]
+        height:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    MemoryUpload:
+      type: object
+      required:
+        - title
+        - date
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          description: Memory date YYYY-MM-DD
+        location:
+          type: string
+        tags:
+          type: string
+          description: Comma-separated tag list
+
+    MemoryUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        date:
+          type: string
+        location:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+
+    TimelineDay:
+      type: object
+      required:
+        - date
+        - memories
+        - count
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+        memories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Memory"
+
+    TimelineMonth:
+      type: object
+      required:
+        - month
+        - monthName
+        - days
+        - count
+      properties:
+        month:
+          type: integer
+        monthName:
+          type: string
+        count:
+          type: integer
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineDay"
+
+    TimelineYear:
+      type: object
+      required:
+        - year
+        - months
+        - count
+      properties:
+        year:
+          type: integer
+        count:
+          type: integer
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineMonth"
+
+    MemoryStats:
+      type: object
+      required:
+        - total
+        - favorites
+        - years
+      properties:
+        total:
+          type: integer
+        favorites:
+          type: integer
+        years:
+          type: array
+          items:
+            $ref: "#/components/schemas/YearStat"
+
+    YearStat:
+      type: object
+      required:
+        - year
+        - count
+        - months
+      properties:
+        year:
+          type: integer
+        count:
+          type: integer
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthStat"
+
+    MonthStat:
+      type: object
+      required:
+        - month
+        - monthName
+        - count
+      properties:
+        month:
+          type: integer
+        monthName:
+          type: string
+        count:
+          type: integer
+
+    Tag:
+      type: object
+      required:
+        - name
+        - count
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
